@@ -1,20 +1,27 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../provider/AuthProvider";
 
 type Props = {
-  audioBlob: Blob;
+  audioBlob: Blob,
+  title: string
 };
 
-function Analyzer({audioBlob}: Props){
+function Analyzer({audioBlob, title}: Props){
 
     const [loading, setLoading] = useState(true)
+    const {user} = useAuth();
     const url = `${import.meta.env.VITE_BACKEND_URL}/analyze`
+
+    const formData = new FormData();
+    formData.append("file", audioBlob, "recording.webm");
+    formData.append("username", user.username)
+    formData.append("title", title)
 
     const analyzeAudio = async () =>{
 
         const response = await fetch(url,{
             method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: audioBlob
+            body: formData
         })
     }
 

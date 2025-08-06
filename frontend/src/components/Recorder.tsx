@@ -4,6 +4,7 @@ function Recorder(){
 
   const [playing, setPlaying] = useState(false);
   const [audioBlob, setaudioBlob] = useState(null);
+  const [title, setTitle] = useState("")
   const [seconds, setSeconds] = useState(0)
 
   const mediaStream = useRef<MediaStream>(null)
@@ -48,6 +49,7 @@ function Recorder(){
         mediaStream.current?.getTracks().forEach(track => {track.stop()
         });
       }
+      setTitle(prompt("enter title"))
       setPlaying(false)
     }
 
@@ -60,7 +62,7 @@ function Recorder(){
         </div> :
         <button type="button" onClick={startRecording} className="bg-green-600 font-medium px-5 py-2.5 text-sm mt-10">Start Recording</button>}
       {/* { recordedAudio && <AudioPlayer recordedAudio={recordedAudio}/>} */}
-      { audioBlob && <Analyzer audioBlob={audioBlob}/>}
+      { audioBlob && <Analyzer audioBlob={audioBlob} title={title}/>}
       </div>
     ) 
 }
