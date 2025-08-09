@@ -9,10 +9,15 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.transcribe.AmazonTranscribe;
 import com.amazonaws.services.transcribe.AmazonTranscribeClientBuilder;
 import com.amazonaws.services.transcribe.model.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.UUID;
 
 @Service
 public class AudioAnalyzerService
@@ -20,26 +25,24 @@ public class AudioAnalyzerService
     @Value("${aws.s3.input-bucket-name}")
     private String bucketName;
 
-    @Value("${aws.s3.output-bucket-name}")
-    private String outputBucketName;
-
     @Value("${aws.region}")
     private String awsRegion;
 
-    public void AnalyzeAudio(MultipartFile audio, String username, String title){
+    public void AnalyzeAudio(MultipartFile audio){
         System.out.println("the audio is received in the service");
-        String s3Uri = uploadAudioToS3(audio, username, title);
-        String transcript = transcribeAudio(s3Uri, title);
+        String randomString = UUID.randomUUID().toString();
+        String s3Uri = uploadAudioToS3(audio, randomString);
+        String transcript = transcribeAudio(s3Uri, randomString);
         System.out.println(transcript);
     }
 
-    public String transcribeAudio(String s3Uri, String title){
+    public String transcribeAudio(String s3Uri, String randomString){
         System.out.println("starting transcription");
         AmazonTranscribe transcribeClient = AmazonTranscribeClientBuilder.standard()
                 .withRegion(awsRegion)
                 .build();
 
-        String transcriptionJobName = title;
+        String transcriptionJobName = randomString;
         Media media = new Media().withMediaFileUri(s3Uri);
 
         StartTranscriptionJobRequest request = new StartTranscriptionJobRequest()
@@ -57,10 +60,19 @@ public class AudioAnalyzerService
             TranscriptionJob job = result.getTranscriptionJob();
             String status = job.getTranscriptionJobStatus();
             if(status.equals("COMPLETED")){
-                return job.getTranscript().getTranscriptFileUri();
+                String transcriptFileUri = job.getTranscript().getTranscriptFileUri();
+                // Download the JSON file
+                try (InputStream in = new URL(transcriptFileUri).openStream()) {
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode root = mapper.readTree(in);
+                    // Extract the transcript text
+                    return root.path("results").path("transcripts").get(0).path("transcript").asText();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
             try {
-                Thread.sleep(2000);
+                Thread.sleep(1000);
                 System.out.println("status: "+status);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
@@ -68,8 +80,8 @@ public class AudioAnalyzerService
         }
     }
 
-    public String uploadAudioToS3(MultipartFile audio, String username, String title) {
-        String objectKey = username+"/"+title+".webm";
+    public String uploadAudioToS3(MultipartFile audio, String randomString) {
+        String objectKey = randomString+".webm";
         try {
             AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
                     .withRegion(awsRegion)
@@ -86,7 +98,6 @@ public class AudioAnalyzerService
         } catch (SdkClientException e) {
             e.printStackTrace();
         } catch (IOException e) {
-            // Handle the failure (log, rethrow, fallback, etc.)
         }
         return null;
     }
