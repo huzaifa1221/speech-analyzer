@@ -19,6 +19,9 @@ function Analyzer({audioBlob}: Props){
             method: "POST",
             body: formData
         })
+        const data = await response.json();
+        console.log(data);
+        setLoading(false)
     }
 
     useEffect(() => {
@@ -28,7 +31,7 @@ function Analyzer({audioBlob}: Props){
     if(loading) return <h1>Analyzing audio...Please wait</h1>
 
     return(
-        <p></p>
+        <p>response has been generated</p>
 
     )
 }
