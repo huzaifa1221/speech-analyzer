@@ -26,18 +26,17 @@ function Recorder(){
         mediaStream.current = stream
         mediaRecorder.current = new MediaRecorder(stream, { mimeType: "audio/webm;codecs=pcm" })
         
-        
         mediaRecorder.current.ondataavailable = async (e) =>{
           if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+            console.log("inside the if block")
             const buffer = await e.data.arrayBuffer();
-            console.log(buffer)
             ws.send(buffer);
           }else{
-              console.log("websocket is not in the reasy state..")
+              console.log("websocket is not in the ready state..")
           }
         }
         
-        mediaRecorder.current.start(200); 
+        mediaRecorder.current.start(100); 
 
         mediaRecorder.current.onstop = () =>{
           ws.close()
