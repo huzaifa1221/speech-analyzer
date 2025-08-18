@@ -1,57 +1,90 @@
 import { useRef, useState } from "react";
-import Analyzer from "./Analyzer";
+import PCM16_JS from '../assets/code/pcm16.js?raw';
+// import Analyzer from "./Analyzer";
+
 function Recorder(){
 
-  const [playing, setPlaying] = useState(false);
+  const [playing, setPlaying] = useState(false)
   const [seconds, setSeconds] = useState(0)
-
-  const mediaStream = useRef<MediaStream>(null)
-  const mediaRecorder = useRef<MediaRecorder>(null)
-
-    const startRecording = async () =>{
-        setPlaying(true)
-        setSeconds(0)
-        const timer = setInterval(() => {
-        setSeconds(prev => prev + 1);
-        }, 1000);
-        
-        const ws = new WebSocket("ws://localhost:8080/ws/transcribe");
-        ws.binaryType = "arraybuffer";
-
-        ws.onmessage = event =>{
-        console.log(event.data);
-        }
-        
-        const stream = await navigator.mediaDevices.getUserMedia({audio: true})
-        mediaStream.current = stream
-        mediaRecorder.current = new MediaRecorder(stream, { mimeType: "audio/webm;codecs=pcm" })
-        
-        mediaRecorder.current.ondataavailable = async (e) =>{
-          if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-            console.log("inside the if block")
-            const buffer = await e.data.arrayBuffer();
-            ws.send(buffer);
-          }else{
-              console.log("websocket is not in the ready state..")
-          }
-        }
-        
-        mediaRecorder.current.start(100); 
-
-        mediaRecorder.current.onstop = () =>{
-          ws.close()
-          clearTimeout(timer)
-          }
-        }
-
-    const stopRecording = () =>{
-      if(mediaRecorder.current){
-        mediaRecorder.current.stop()
-        mediaStream.current?.getTracks().forEach(track => {track.stop()
+  const timerRef = useRef(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const processorNodeRef = useRef<AudioWorkletNode | null>(null);
+  const audioInputNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const wsRef = useRef(null)
+ 
+    const registerAudioProcessor = async (audioContext: AudioContext, javascript: string) => {
+        return new Promise<void>((resolve, reject) => {
+            const blob = new Blob([javascript], { type: 'application/javascript' });
+            const url = URL.createObjectURL(blob);
+    
+            audioContext.audioWorklet.addModule(url)
+                .then(() => {
+                    URL.revokeObjectURL(url);
+                    resolve();
+                })
+                .catch(reject)
         });
-      }
-      setPlaying(false)
     }
+    
+  const startRecording = async () =>{
+
+    audioContextRef.current = new AudioContext({ sampleRate: 16000 });
+    await registerAudioProcessor(audioContextRef.current, PCM16_JS);
+    streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true })
+    audioInputNodeRef.current = audioContextRef.current.createMediaStreamSource(streamRef.current);
+    processorNodeRef.current = new AudioWorkletNode(audioContextRef.current, 'pcm16');
+    audioInputNodeRef.current.connect(processorNodeRef.current);
+
+    wsRef.current = new WebSocket("ws://localhost:8080/ws/transcribe");
+    wsRef.current.binaryType = "arraybuffer";
+  
+    wsRef.current.onmessage = event =>{
+      console.log(event.data);
+    }
+    wsRef.current.onclose = () =>{
+      console.log("websocket closed")
+    }
+
+    processorNodeRef.current.port.onmessage = (event) => {
+    const pcmChunk = event.data as ArrayBuffer;
+    console.log(pcmChunk)
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(pcmChunk);
+    }
+    }
+
+      timerRef.current = setInterval(() => {
+      setSeconds(prev => prev + 1);
+      }, 1000);
+
+      setPlaying(true)
+    }
+
+  const stopRecording = async () => {
+    streamRef.current.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+
+    audioInputNodeRef.current.disconnect();
+    audioInputNodeRef.current = null;
+
+    processorNodeRef.current.port.onmessage = null;
+    processorNodeRef.current.disconnect();
+    processorNodeRef.current = null;
+
+    await audioContextRef.current.close();
+    audioContextRef.current = null;
+
+    wsRef.current.close();
+    wsRef.current = null;
+
+    clearTimeout(timerRef.current);
+    timerRef.current = null;
+    setSeconds(0);
+    setPlaying(false);
+
+    console.log("Stopped recording, context closed, processor disabled");
+};
 
     return(
       <div className="mt-10 text-center">
