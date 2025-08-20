@@ -44,21 +44,22 @@ function Recorder(){
     }
     wsRef.current.onclose = () =>{
       console.log("websocket closed")
+      stopRecording();
     }
 
     processorNodeRef.current.port.onmessage = (event) => {
     const pcmChunk = event.data as ArrayBuffer;
-    console.log(pcmChunk)
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(pcmChunk);
-    }
+    console.log(pcmChunk.byteLength)
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(pcmChunk);
+      }
     }
 
-      timerRef.current = setInterval(() => {
-      setSeconds(prev => prev + 1);
-      }, 1000);
+    timerRef.current = setInterval(() => {
+    setSeconds(prev => prev + 1);
+    }, 1000);
 
-      setPlaying(true)
+    setPlaying(true)
     }
 
   const stopRecording = async () => {
