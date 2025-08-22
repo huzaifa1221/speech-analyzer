@@ -15,7 +15,6 @@ public class AudioStreamPublisher implements Publisher<AudioStream> {
     public void addInQueue(byte[] audioBytes){
         try {
             queue.put(audioBytes);
-//            System.out.println("audio bytes added "+audioBytes.length);
         } catch (InterruptedException e) {
             System.out.println("error occured while adding items in queue");
             throw new RuntimeException(e);
@@ -31,8 +30,9 @@ public class AudioStreamPublisher implements Publisher<AudioStream> {
             this.currentSubscription = new SubscriptionImpl(s, queue);
         }
         s.onSubscribe(currentSubscription);
-        System.out.println("the aws has now subscribed to the publisher");
     }
 
-
+    public void closeTranscribeConnection(){
+        currentSubscription.cancel();
+    }
 }

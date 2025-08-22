@@ -1,30 +1,66 @@
 package speech_analyzer.backend.WebSocket;
 
-import org.checkerframework.checker.units.qual.A;
-import org.springframework.web.socket.BinaryMessage;
-import org.springframework.web.socket.CloseStatus;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.BinaryWebSocketHandler;
-import software.amazon.awssdk.core.async.SdkPublisher;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.transcribestreaming.TranscribeStreamingAsyncClient;
 import software.amazon.awssdk.services.transcribestreaming.model.*;
-
+import speech_analyzer.backend.services.AudioAnalyzerService;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class webSocketHandler extends BinaryWebSocketHandler {
 
     AudioStreamPublisher publisher = new AudioStreamPublisher();
+    WebSocketSession session;
+
+    public StartStreamTranscriptionResponseHandler responseHandler(){
+        AtomicReference<StringBuilder> transcriptBuilder = new AtomicReference<>(new StringBuilder());
+        return StartStreamTranscriptionResponseHandler.builder()
+                        .onResponse(r -> {})
+                        .subscriber(event -> {
+                            List<Result> results = ((TranscriptEvent) event).transcript().results();
+                            if (results.size() > 0) {
+                                if (!results.get(0).alternatives().get(0).transcript().isEmpty()) {
+                                    for (Result result : results) {
+                                        if (!result.isPartial()) {
+                                            for (Alternative alt : result.alternatives()) {
+                                                transcriptBuilder.get()
+                                                        .append(alt.transcript())
+                                                        .append(" ");
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        })
+                        .onError(throwable -> {
+                            System.out.println("this error is coming from the response handler " +throwable);
+                        })
+                        .onComplete(() -> {
+                            System.out.println("transcription completed");
+                            String fullTranscript = transcriptBuilder.get().toString().trim();
+                            System.out.println(fullTranscript);
+                                    try {
+                                        session.sendMessage(new TextMessage(fullTranscript));
+                                    } catch (IOException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                }
+                        )
+                        .build();
+    }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws ExecutionException, InterruptedException {
+        this.session = session;
         System.out.println("the connection is established " + session.getId());
         TranscribeStreamingAsyncClient transcribeClient = TranscribeStreamingAsyncClient.builder()
                 .region(Region.US_EAST_1) // Or your desired region
@@ -36,36 +72,17 @@ public class webSocketHandler extends BinaryWebSocketHandler {
                 .mediaSampleRateHertz(16000)
                 .build();
 
-        StartStreamTranscriptionResponseHandler responseHandler =
-                StartStreamTranscriptionResponseHandler.builder()
-                        .onResponse(r -> {
-                            System.out.println("Received Initial response");
-                        })
-                        .subscriber(event -> {
-                            List<Result> results = ((TranscriptEvent) event).transcript().results();
-                            if (results.size() > 0) {
-                                if (!results.get(0).alternatives().get(0).transcript().isEmpty()) {
-                                    System.out.println(results.get(0).alternatives().get(0).transcript());
-                                }
-                            }
-                        })
-                        .onError(throwable -> {
-                            System.out.println("this error is coming from the response handler " +throwable);
-                        })
-                        .onComplete(() -> System.out.println("Transcription complete"))
-                        .build();
-
-        CompletableFuture<Void> result = transcribeClient.startStreamTranscription(request, publisher, responseHandler);
+        CompletableFuture<Void> result = transcribeClient.startStreamTranscription(request, publisher, responseHandler());
         result.whenComplete((r, t) -> {
             if (t != null) {
                 System.out.println("Transcribe stream failed"+ t);
             } else {
+                try {
+                    session.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
                 System.out.println("Transcribe stream completed normally");
-            }
-            try {
-                session.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
             }
         });
     }
@@ -80,12 +97,12 @@ public class webSocketHandler extends BinaryWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        System.out.println("the connection is closed " + session.getId());
+        publisher.closeTranscribeConnection();
+        System.out.println("websocket connection closed: "+session);
     }
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) {
         exception.printStackTrace();
     }
-
 }

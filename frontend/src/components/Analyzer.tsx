@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
 
-type Props = {
-    audioBlob: Blob,
-};
-
 type better_words_sentences = {
     original: string,
     suggestion: string
@@ -20,33 +16,28 @@ type Data = {
 }
 
 
-function Analyzer({ audioBlob }: Props) {
+function Analyzer({ transcript }) {
 
     const [loading, setLoading] = useState(true)
     const url = `${import.meta.env.VITE_BACKEND_URL}/analyze`
-
     const [data, setData] = useState<Data>(null)
 
-    const formData = new FormData();
-    formData.append("file", audioBlob, "recording.webm");
 
+    useEffect(()=>{
+        const analyzeTranscript = async () => {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain" },
+                body: transcript
+            })
+            const output = await response.json();
+            setLoading(false)
+            console.log(output);
+            setData(output)
+        }
 
-    const analyzeAudio = async () => {
-
-        const response = await fetch(url, {
-            method: "POST",
-            body: formData
-        })
-        const output = await response.json();
-        console.log(output);
-        setData(output)
-        console.log(data)
-        setLoading(false)
-    }
-
-    useEffect(() => {
-        analyzeAudio();
-    }, [])
+        analyzeTranscript()
+    },[])
 
     if (loading) return <h1>Analyzing audio...Please wait</h1>
 
