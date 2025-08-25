@@ -7,7 +7,7 @@ function Recorder() {
   const [start, setStart] = useState(false)
   const [seconds, setSeconds] = useState(0)
   const [transcript, setTranscript] = useState(null)
-  const timerRef = useRef(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const processorNodeRef = useRef<AudioWorkletNode | null>(null);
   const audioInputNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
@@ -43,7 +43,7 @@ function Recorder() {
 
     wsRef.current.onclose = () => {
       console.log("websocket closed")
-      wsRef.current.close()
+      wsRef.current?.close()
       wsRef.current = null
     }
 
@@ -68,23 +68,27 @@ function Recorder() {
   }
 
   const stopRecording = async () => {
-    if (streamRef.current.getTracks) {
+    if (streamRef.current?.getTracks) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
 
-    audioInputNodeRef.current.disconnect();
+    audioInputNodeRef.current?.disconnect();
     audioInputNodeRef.current = null;
 
-    processorNodeRef.current.port.onmessage = null;
-    processorNodeRef.current.disconnect();
-    processorNodeRef.current = null;
+    if(processorNodeRef.current){
+      processorNodeRef.current.port.onmessage = null;
+      processorNodeRef.current.disconnect();
+      processorNodeRef.current = null;      
+    }
 
-    await audioContextRef.current.close();
+    await audioContextRef.current?.close();
     audioContextRef.current = null;
 
-    clearTimeout(timerRef.current);
-    timerRef.current = null;
+    if(timerRef.current){
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
     setSeconds(0);
     setStart(false)
     setIndicator(true)
