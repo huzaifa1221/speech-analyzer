@@ -12,7 +12,7 @@ function Recorder() {
   const processorNodeRef = useRef<AudioWorkletNode | null>(null);
   const audioInputNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const wsRef = useRef(null)
+  const wsRef = useRef<WebSocket | null >(null)
   const [indicator, setIndicator] = useState(false)
 
 
@@ -31,6 +31,7 @@ function Recorder() {
   }
 
   const startRecording = async () => {
+    setIndicator(false)
     wsRef.current = new WebSocket("ws://localhost:8080/ws/transcribe");
     wsRef.current.binaryType = "arraybuffer";
     audioContextRef.current = new AudioContext({ sampleRate: 16000 });
@@ -92,14 +93,14 @@ function Recorder() {
   };
 
   return (
-    <div className="mt-10 text-center">
-      <h1 className="text-2xl font-semibold text-gray-800 mb-4">Record your audio / speech</h1>
-      {!start && <button type="button" onClick={startRecording} className="bg-green-600 font-medium px-5 py-2.5 text-sm mt-10">Start Recording</button>}
+    <div className="mt-10 text-center min-h-screen bg-linear-to-b from-white to-blue-200">
+      <h1 className="text-2xl font-semibold text-gray-800 mb-4">Record your speech</h1>
+      {!start && <button type="button" onClick={startRecording} className="bg-green-600 mb-10 font-medium px-5 py-2.5 text-white mt-10 rounded-md hover:bg-green-900 cursor-pointer duration-200 ">Start Recording</button>}
       {start && <div className="mt-4">
-        <h1>Timer: {seconds} seconds</h1>
-        <button type="button" onClick={stopRecording} className="bg-red-600 text-gray-800font-medium px-5 py-2.5 text-sm">Stop Recording</button>
+        <h1 className="text-black text-2xl font-medium ">Timer: {seconds} seconds</h1>
+        <button type="button" onClick={stopRecording} className="bg-red-600 font-medium px-5 py-2.5 text-white mt-10 rounded-md hover:bg-red-900 cursor-pointer duration-200">Stop Recording</button>
       </div>}
-      {indicator && <p>Please wait a moment, Preparing your audio</p>}
+      {indicator && <p className="">Please wait a moment, Preparing your audio</p>}
       {transcript && <Analyzer transcript={transcript}></Analyzer>}
     </div>
   )
