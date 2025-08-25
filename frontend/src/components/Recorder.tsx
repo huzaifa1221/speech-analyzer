@@ -14,8 +14,8 @@ function Recorder() {
   const streamRef = useRef<MediaStream | null>(null);
   const wsRef = useRef<WebSocket | null >(null)
   const [indicator, setIndicator] = useState(false)
-
-
+  const url = `${import.meta.env.VITE_BACKEND_URL}`.split("//")[1]
+  
   const registerAudioProcessor = async (audioContext: AudioContext, javascript: string) => {
     return new Promise<void>((resolve, reject) => {
       const blob = new Blob([javascript], { type: 'application/javascript' });
@@ -32,7 +32,7 @@ function Recorder() {
 
   const startRecording = async () => {
     setIndicator(false)
-    wsRef.current = new WebSocket("ws://localhost:8080/ws/transcribe");
+    wsRef.current = new WebSocket(`ws://${url}/ws/transcribe`);
     wsRef.current.binaryType = "arraybuffer";
     audioContextRef.current = new AudioContext({ sampleRate: 16000 });
     await registerAudioProcessor(audioContextRef.current, PCM16_JS);

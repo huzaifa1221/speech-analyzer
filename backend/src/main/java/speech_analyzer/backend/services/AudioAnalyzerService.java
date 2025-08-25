@@ -11,7 +11,10 @@ import speech_analyzer.backend.Dto.SpeechAnalysisDto;
 public class AudioAnalyzerService {
 
     public SpeechAnalysisDto generateResponse(String transcript) {
-        Client client = new Client();
+        String apiKey = System.getenv("GOOGLE_API_KEY");
+        Client client = new Client.Builder()
+                .apiKey(apiKey)
+                .build();
         String prompt =
                 "You are an AI speech analysis expert. \n" +
                         "You will receive a transcript of a spoken speech. \n" +
