@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 function Home() {
-    const url = `${import.meta.env.VITE_BACKEND_URL}/healthcheck`
+    const url = `${import.meta.env.VITE_BACKEND_URL}/health`
 
     useEffect(() => {
 
