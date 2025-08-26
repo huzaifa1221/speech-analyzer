@@ -1,6 +1,22 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 function Home() {
+    const url = `${import.meta.env.VITE_BACKEND_URL}`
+
+    useEffect(() => {
+
+        const healthcheck = async () => {
+            try {
+                const response = await fetch(url)
+                const data = await response.json()
+                console.log(data)
+            } catch (error) {
+                console.error("healthcheck failed:", error);
+            }
+        }
+        healthcheck();
+    }, [])
 
     const navigate = useNavigate();
 
