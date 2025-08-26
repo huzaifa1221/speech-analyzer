@@ -13,7 +13,7 @@ function Home() {
             <div className="max-w-250 mx-auto pt-20">
                 <div className="grid place-items-center grid-cols-1 md:grid-cols-3 rounded-lg-shadow gap-6 p-6">
                     <div className="col-span-2 ">
-                        <h1 className="text-8xl font-bold">Your Personal AI Speech Coach hzaifa</h1>
+                        <h1 className="text-8xl font-bold">Your Personal AI Speech Coach</h1>
                     </div>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="#000000" height="200px" width="800px" version="1.1" viewBox="0 0 512 512" enable-background="new 0 0 512 512">
                         <g>
