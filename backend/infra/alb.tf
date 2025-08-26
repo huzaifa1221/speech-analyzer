@@ -11,7 +11,7 @@ resource "aws_lb" "speech_analyzer" {
 resource "aws_lb_target_group" "backend_tg" {
   name        = "backend-tg"
   port        = 8080
-  protocol    = "HTTP"
+  protocol    = "HTTPS"
   vpc_id      = data.aws_vpc.vpc.id
   target_type = "ip"
 }
@@ -20,7 +20,7 @@ resource "aws_lb_target_group" "backend_tg" {
 resource "aws_lb_listener" "backend_listener" {
   load_balancer_arn = aws_lb.speech_analyzer.arn
   port              = 8080
-  protocol          = "HTTP"
+  protocol          = "HTTPS"
 
   default_action {
     type             = "forward"

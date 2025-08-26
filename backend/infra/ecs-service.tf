@@ -30,7 +30,7 @@ resource "aws_ecs_task_definition" "backend_td" {
   container_definitions = jsonencode([
     {
       name      = "backend"
-      image     = "${aws_ecr_repository.speech-analyzer.arn}/backend"
+      image     = "${aws_ecr_repository.speech-analyzer.repository_url}:backend"
       essential = true
       portMappings = [
         {
