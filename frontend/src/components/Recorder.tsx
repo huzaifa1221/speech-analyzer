@@ -32,7 +32,7 @@ function Recorder() {
 
   const startRecording = async () => {
     setIndicator(false)
-    wsRef.current = new WebSocket(`ws://${url}/ws/transcribe`);
+    wsRef.current = new WebSocket(`wss://${url}/ws/transcribe`);
     wsRef.current.binaryType = "arraybuffer";
     audioContextRef.current = new AudioContext({ sampleRate: 16000 });
     await registerAudioProcessor(audioContextRef.current, PCM16_JS);
