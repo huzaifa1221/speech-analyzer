@@ -20,3 +20,5 @@ backend - springboot, aws transcribe, Google Gemini API
 3. generate and setup ``GOOGLE_API_KEY`` as environment variable
 4. run the react app ``npm i && npm run dev``
 5. run the backend `` mvn clean package && cd target && java - jar <jar file>``
+
+![alt text](https://github.com/huzaifa1221/speech-analyzer/blob/revamp/Screenshot2025-08-29at1.56.59 PM.png?raw=true)
