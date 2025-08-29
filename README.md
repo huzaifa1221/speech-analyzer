@@ -22,3 +22,7 @@ backend - springboot, aws transcribe, Google Gemini API
 5. run the backend `` mvn clean package && cd target && java - jar <jar file>``
 
 ![alt text](https://github.com/huzaifa1221/speech-analyzer/blob/revamp/readme-images/home.png?raw=true)
+![alt text](https://github.com/huzaifa1221/speech-analyzer/blob/revamp/readme-images/dashboard.png?raw=true)
+![alt text](https://github.com/huzaifa1221/speech-analyzer/blob/revamp/readme-images/permission.png?raw=true)
+![alt text](https://github.com/huzaifa1221/speech-analyzer/blob/revamp/readme-images/recording.png?raw=true)
+![alt text](https://github.com/huzaifa1221/speech-analyzer/blob/revamp/readme-images/analysis.png?raw=true)
